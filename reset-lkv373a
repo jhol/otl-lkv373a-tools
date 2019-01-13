@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+
+import lkv373a
+lkv373a.reset()

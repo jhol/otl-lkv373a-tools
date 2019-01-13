@@ -2,6 +2,6 @@
 
 from lkv373a import vserprog
 
-vserprog_devices = vserprog.list_vserprogs().values()
+vserprog_devices = vserprog.devices.values()
 print('Tristating {}'.format(', '.join(vserprog_devices)))
 vserprog.trisate_vserprogs(vserprog_devices)

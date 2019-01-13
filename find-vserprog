@@ -9,15 +9,14 @@ def usage():
     "{0} ID - Finds the tty of a given device\n".format(sys.argv[0]))
 
 ids = ['mu1', 'u2']
-vserprogs = vserprog.list_vserprogs()
 
 if len(sys.argv) == 1:
   for serprog in ids:
-    print('%04s: %s' % (serprog.upper(), vserprogs.get(serprog, '-')))
+    print('%04s: %s' % (serprog.upper(), vserprog.devices.get(serprog, '-')))
 elif len(sys.argv) == 2:
   ident = sys.argv[1].lower()
   try:
-    print(vserprogs[ident])
+    print(vserprog.devices[ident])
   except KeyError:
     sys.stderr.write("vserprog '%s' not found\n" % ident)
     sys.exit(1)

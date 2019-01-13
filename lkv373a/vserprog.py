@@ -7,7 +7,7 @@ empty_file = tempfile.NamedTemporaryFile()
 tty_class_dir = '/sys/class/tty'
 vserprog_ids = {'234218677285525154FF6E06': 'mu1', '164023677572545554FF6B06': 'u2'}
 
-def list_vserprogs():
+def _list_vserprogs():
   from os import path, readlink
   from os.path import dirname as dn
 
@@ -17,6 +17,8 @@ def list_vserprogs():
     for d in tty_devices if d.startswith('ttyACM')]
 
   return {vserprog_ids[kv[1]]: kv[0] for kv in vserprog_devices}
+
+devices = _list_vserprogs()
 
 def spawn_tristate_vserprog(device):
   return subprocess.Popen(['flashrom', '-p', 'serprog:dev=/dev/{}:40000000'.format(device), '-v', empty_file.name],
