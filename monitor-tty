@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+
+import lkv373a
+import serial
+import sys
+
+with serial.Serial('/dev/{}'.format(lkv373a.tty_device), 115200) as ser:
+  while True:
+    sys.stdout.write(ser.readline().decode('ascii'))
