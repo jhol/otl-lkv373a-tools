@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+
+import lkv373a
+import sys
+
+if not lkv373a.tty_device:
+  sys.stdout.write("Device not found\n")
+  sys.exit(1)
+
+print(lkv373a.tty_device)
