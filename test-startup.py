@@ -62,5 +62,5 @@ with open(sys.argv[1], 'w') as log:
         capture_redacted_hash = '-'
 
       sys.stdout.write('{}-lines, {}, redacted={}\n'.format(len(capture_lines), capture_hash, capture_redacted_hash))
-      log.write('{},{},{},{}\n'.format(i, lines, capture_hash, capture_redacted_hash))
+      log.write('{},{},{},{}\n'.format(i, len(capture_lines), capture_hash, capture_redacted_hash))
       log.flush()
