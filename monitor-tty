@@ -10,4 +10,4 @@ if not lkv373a.tty_device:
 
 with serial.Serial('/dev/{}'.format(lkv373a.tty_device), 115200) as ser:
   while True:
-    sys.stdout.write(ser.readline().decode('ascii'))
+    sys.stdout.write(ser.readline().decode('ascii', 'ignore'))
