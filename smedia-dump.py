@@ -33,36 +33,36 @@ while 1:
   smaz_off = smedia_off + header_length
   assert(d[smaz_off:smaz_off+4] == b'SMAZ')
   off = smaz_off + 4
-  unk = unpack_from('>I', d, off)[0]
+  unpacked_unit_length = unpack_from('>I', d, off)[0]
   off += 4
-  print('  0x{:06x} SMAZ: unk=0x{:x}'.format(smaz_off, unk))
+  print('  0x{:06x} SMAZ: unpacked_unit_length=0x{:x}'.format(smaz_off, unpacked_unit_length))
 
   data_length -= 8
   smaz_idx = 0
-  unk = None
 
-  # TODO: The end of SMAZ blobs is not completely understood
-  while unk != 0 and data_length > 8:
-    chunk_off = off
-    unpacked_length = unpack_from('>I', d, off)[0]
-    off += 4
-    packed_length = unpack_from('>I', d, off)[0]
-    off += 4
+  with open('smaz-{}.bin'.format(smedia_idx), 'wb') as smaz_file:
+    while data_length > 8:
+      chunk_off = off
+      unpacked_length = unpack_from('>I', d, off)[0]
+      off += 4
+      packed_length = unpack_from('>I', d, off)[0]
+      off += 4
 
-    smaz = d[off:off+packed_length]
-    open('smaz-{}-{}.bin'.format(smedia_idx, smaz_idx), 'wb').write(smaz)
+      smaz = d[off:off+packed_length]
+      open('smaz-{}-{}.bin'.format(smedia_idx, smaz_idx), 'wb').write(smaz)
+      smaz_file.write(smaz)
 
-    #histograms.append(make_histogram())
-    off += packed_length
-    print('    0x{:06x} unpacked_length={:d}, packed_length={:d}'.format(chunk_off, unpacked_length, packed_length))
-    data_length -= packed_length + 8
+      off += packed_length
+      print('    0x{:06x} unpacked_length={:d}, packed_length={:d}'.format(chunk_off, unpacked_length, packed_length))
+      data_length -= packed_length + 8
 
-    smaz_idx += 1
+      smaz_idx += 1
 
   # Validate the termination bytes
   print('    {}-padding bytes: {}'.format(data_length,
       ' '.join(['{:02x}'.format(b) for b in d[off:off+data_length]])))
   assert(d[off:off+data_length] == b'\x00' * data_length)
+  assert(data_length < 8)
 
   off += data_length
   smedia_idx += 1
