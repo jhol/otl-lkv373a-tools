@@ -27,3 +27,10 @@ def spawn_tristate_vserprog(device):
 def trisate_vserprogs(devices):
   for p in [spawn_tristate_vserprog(device) for device in devices]:
     p.wait()
+
+def write(device, binary):
+  flashrom = subprocess.Popen(['flashrom', '-p', 'serprog:dev=/dev/{}:40000000'.format(device),
+      '-w', binary], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  stdout, _ = flashrom.communicate()
+  if flashrom.returncode != 0:
+    raise RuntimeError(stdout.decode('utf-8'))
