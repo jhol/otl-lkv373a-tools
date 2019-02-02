@@ -7,8 +7,10 @@ import serial
 import subprocess
 import sys
 import time
-import tempfile
 import re
+
+base=0x831C9
+length=1
 
 timeout=3
 lines=32
@@ -25,8 +27,8 @@ print('Begin...')
 start_time = time.time()
 with open(sys.argv[1], 'w') as log:
   log.write('#,Lines,Hash,Redacted Hash\n')
-  for i in range(4096):
-    sys.stdout.write('[{: 5.1f}] {: 3}. '.format(time.time() - start_time, i))
+  for i in range(base, base + length):
+    sys.stdout.write('[{: 5.1f}] 0x{:03x} '.format(time.time() - start_time, i))
     sys.stdout.flush()
 
     with open('mod-firmware.bin', 'wb') as f:
@@ -35,14 +37,12 @@ with open(sys.argv[1], 'w') as log:
       f.write(mod_firmware)
 
     while True:
-      flashrom = subprocess.Popen(['flashrom', '-p', 'serprog:dev=/dev/{}:40000000'.format(vserprog.devices['u2']),
-          '-w', 'mod-firmware.bin'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-      stdout, _ = flashrom.communicate()
-      if flashrom.returncode != 0:
-        sys.stderr.write('flashrom failed!\n')
-        sys.stderr.write(stdout.decode('utf-8'))
-      else:
+      try:
+        vserprog.write(vserprog.devices['u2'], 'mod-firmware.bin')
         break
+      except RuntimeError as e:
+        sys.stderr.write('flashrom failed!\n')
+        sys.stderr.write(str(e))
 
     lkv373a.reset()
 
@@ -53,13 +53,10 @@ with open(sys.argv[1], 'w') as log:
       with open('{}.asc'.format(capture_hash), 'wb') as f:
         f.write(capture)
 
-      try:
-        capture_redacted = re.sub('[x ][a-f0-9]+', ' ----', capture.decode('ascii')).encode('ascii')
-        capture_redacted_hash = hashlib.md5(capture_redacted).hexdigest()
-        with open('{}.asc'.format(capture_redacted_hash), 'wb') as f:
-          f.write(capture_redacted)
-      except UnicodeDecodeError:
-        capture_redacted_hash = '-'
+      capture_redacted = re.sub('[x ][a-f0-9]+', ' ----', capture.decode('ascii', 'ignore')).encode('ascii')
+      capture_redacted_hash = hashlib.md5(capture_redacted).hexdigest()
+      with open('{}.asc'.format(capture_redacted_hash), 'wb') as f:
+        f.write(capture_redacted)
 
       sys.stdout.write('{}-lines, {}, redacted={}\n'.format(len(capture_lines), capture_hash, capture_redacted_hash))
       log.write('{},{},{},{}\n'.format(i, len(capture_lines), capture_hash, capture_redacted_hash))
