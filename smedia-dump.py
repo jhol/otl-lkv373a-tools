@@ -35,7 +35,11 @@ while 1:
   off = smaz_off + 4
   unpacked_unit_length = unpack_from('>I', d, off)[0]
   off += 4
-  print('  0x{:06x} SMAZ: unpacked_unit_length=0x{:x}'.format(smaz_off, unpacked_unit_length))
+  print('  0x{:06x} SMAZ: unpacked_unit_length={:d}'.format(smaz_off, unpacked_unit_length))
+
+  checksum, length = unpack_from('>2I', d, smaz_off - 8)
+  print('                 unk=0x{:08x}, total_unpacked_length={:d}'.format(checksum, length))
+  orig_data_length = data_length
 
   data_length -= 8
   smaz_idx = 0
