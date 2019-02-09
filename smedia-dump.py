@@ -53,7 +53,7 @@ while 1:
       off += 4
 
       smaz = d[off:off+packed_length]
-      open('smaz-{}-{}.bin'.format(smedia_idx, smaz_idx), 'wb').write(smaz)
+      #open('smaz-{}-{}.bin'.format(smedia_idx, smaz_idx), 'wb').write(smaz)
       smaz_file.write(smaz)
 
       off += packed_length
