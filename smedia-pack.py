@@ -4,7 +4,7 @@ import sys
 import smedia
 
 def usage():
-  print('{} SMEDIA_HEADER SMAZ_UNPACKED_LENGTH SMAZ_UNITS... OUT'.format(sys.argv[0]))
+  print('{} SMEDIA_HEADER SMAZ_UNPACKED_LENGTH SMAZ_CHUNKS... OUT'.format(sys.argv[0]))
 
 if len(sys.argv) < 4:
   usage()

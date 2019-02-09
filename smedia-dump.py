@@ -33,9 +33,9 @@ while 1:
   smaz_off = smedia_off + header_length
   assert(d[smaz_off:smaz_off+4] == b'SMAZ')
   off = smaz_off + 4
-  unpacked_unit_length = unpack_from('>I', d, off)[0]
+  unpacked_chunk_length = unpack_from('>I', d, off)[0]
   off += 4
-  print('  0x{:06x} SMAZ: unpacked_unit_length={:d}'.format(smaz_off, unpacked_unit_length))
+  print('  0x{:06x} SMAZ: unpacked_chunk_length={:d}'.format(smaz_off, unpacked_chunk_length))
 
   checksum, length = unpack_from('>2I', d, smaz_off - 8)
   print('                 unk=0x{:08x}, total_unpacked_length={:d}'.format(checksum, length))
