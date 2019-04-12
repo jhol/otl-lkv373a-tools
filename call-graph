@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+
+import collections
+import re
+import sys
+
+rom_length = 0x4878
+
+smed = '534d4544'
+smaz = '534d415a'
+literals = {smed, smaz}
+
+Call = collections.namedtuple('Call', ['address', 'target'])
+Ori = collections.namedtuple('Ori', ['address', 'literal'])
+
+re_call = re.compile('^[ ]*([0-9a-f]+).*call .*// ([0-9a-f]+)$')
+re_ori = re.compile('^[ ]*([0-9a-f]+).*ori .*// ([0-9A-Za-z+_]+)$')
+re_ret = re.compile('^[ ]*([0-9a-f]+).*ret .*$')
+
+lines = sys.stdin.readlines()
+
+calls = [Call(int(m.group(1), 16), int(m.group(2), 16)) for m in (re_call.match(l) for l in lines) if m]
+rets = [int(m.group(1), 16) for m in (re_ret.match(l) for l in lines) if m]
+oris = [Ori(int(m.group(1), 16), m.group(2)) for m in (re_ori.match(l) for l in lines) if m]
+
+call_targets = sorted(list({c.target for c in calls}))
+
+print('digraph call_graph {')
+
+func_calls = {}
+func_labels = {}
+
+for i in range(len(call_targets)):
+  target = call_targets[i]
+  max_addr = (rom_length if i == len(call_targets) - 1 else call_targets[i+1]) - 4
+  func_rets = [r for r in rets if r >= target and r <= max_addr]
+  func_calls[target] = [c for c in calls if c.address >= target and c.address <= max_addr]
+  func_oris = [o for o in oris if o.address >= target and o.address <= max_addr]
+
+  literal_oris = [o for o in func_oris if o.literal in literals]
+  reg_oris = [o for o in func_oris if o.literal.startswith('ITH_')]
+  func_labels[target] = '\\n'.join(['0x{:08x} {:d}'.format(target, int((max_addr - target) / 4))] +
+    [bytearray.fromhex(o.literal).decode() for o in literal_oris] +
+    list(sorted({o.literal for o in reg_oris})))
+    
+  
+print('node [style=rounded]')
+for target in call_targets:
+  for c in call_targets:
+    print('"{:08x}" [shape=box, label="{}"]'.format(c, func_labels[c]))
+  for c in func_calls[target]:
+    print('"{:08x}" -> "{:08x}";'.format(target, c.target))
+
+print('}')

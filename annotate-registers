@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import re
+import sys
+import collections
+
+Define = collections.namedtuple('Define', ['label', 'value'])
+Base = collections.namedtuple('Base', ['label', 'index', 'value', 'end'])
+
+ith_defs_h = '/mnt/third/joel/workspace/opentechlab/16-it9919/ith_defs.h'
+
+re_defined = re.compile(r'#define[ \t]+([A-Z0-9_]+)[ \t]+(.*?)[ \t]*(// .*)?$')
+re_base_label = re.compile(r'^(.*?)([0-9]+)?_BASE$')
+re_reg = re.compile(r'^(.*)_REG$')
+re_word_line = re.compile(r'(.*// )([0-9a-f]+)')
+
+defines = [Define(m.group(1), m.group(2)) for m in
+    (re_defined.match(l) for l in open(ith_defs_h, 'r').readlines()) if m]
+
+bases = [Base(lv[0].group(1), lv[0].group(2), int(lv[1], 16), None) for lv in
+    ((re_base_label.match(d.label), d.value) for d in defines) if lv[0]]
+
+bases = [Base(b.label, b.index, b.value,
+  (sorted([b2.value for b2 in bases if b2.value > b.value]) or [0xFFFFFFFF])[0]) for b in bases]
+
+address_labels = {}
+
+def make_label(reg_name, base):
+  if base.index == None:
+    return reg_name
+  return '{}{}{}'.format(base.label, base.index, reg_name[len(base.label):])
+
+for d in defines:
+  m = re_reg.match(d.label)
+  if m:
+    address_labels.update([(b.value + int(d.value, 16), make_label(m.group(1), b))
+            for b in bases if m.group(1).startswith(b.label)])
+
+def print_annotation(address):
+  try:
+    return address_labels[address]
+  except KeyError:
+    for b in bases:
+      if address >= b.value and address < b.end:
+        return '{}_BASE+0x{:x}'.format(b.label, address - b.value)
+  return '{:x}'.format(address)
+  
+for l in sys.stdin:
+  m = re_word_line.match(l)
+  if m:
+    print(''.join([m.group(1), print_annotation(int(m.group(2), 16))]))
+  else:
+    print(l.rstrip())
