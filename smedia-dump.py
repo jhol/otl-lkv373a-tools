@@ -38,7 +38,7 @@ while 1:
   print('  0x{:06x} SMAZ: unpacked_chunk_length={:d}'.format(smaz_off, unpacked_chunk_length))
 
   checksum, length = unpack_from('>2I', d, smaz_off - 8)
-  print('                 unk=0x{:08x}, total_unpacked_length={:d}'.format(checksum, length))
+  print('                 checksum=0x{:08x}, total_unpacked_length={:d}'.format(checksum, length))
   orig_data_length = data_length
 
   data_length -= 8
