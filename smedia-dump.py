@@ -3,6 +3,8 @@
 import sys
 from struct import *
 
+import smedia.smaz
+
 def find_sequence(d, sequence, off=0):
   for start in range(off, len(d) - len(sequence)):
     end = start + len(sequence)
@@ -61,6 +63,7 @@ while 1:
       smaz = d[off:off+packed_length]
       #open('smaz-{}-{}.bin'.format(smedia_idx, smaz_idx), 'wb').write(smaz)
       smaz_file.write(smaz)
+      smedia.smaz.decode(smaz)
 
       off += packed_length
       print('    0x{:06x} unpacked_length={:d}, packed_length={:d}'.format(chunk_off, unpacked_length, packed_length))
