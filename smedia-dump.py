@@ -19,18 +19,24 @@ while 1:
   if smedia_off == None:
     break
 
-  unk = unpack_from('>I', d, off)[0]
+  setup_script_offset = unpack_from('>I', d, off)[0]
   off += 4
-  header_length = unpack_from('>I', d, off)[0]
+  smaz_offset = unpack_from('>I', d, off)[0]
   off += 4
   data_length = unpack_from('>I', d, off)[0]
   off += 4
-  print('0x{:06x} SMEDIA02: unk=0x{:x}, header_length={:d}, data_length={:d}'.format(
-      smedia_off, unk, header_length, data_length))
+  print('0x{:06x} SMEDIA02: setup_scipt_offset=0x{:x}, smaz_offset={:d}, data_length={:d}'.format(
+      smedia_off, setup_script_offset, smaz_offset, data_length))
 
-  open('smedia-header-{}.bin'.format(smedia_idx), 'wb').write(d[smedia_off+off:smedia_off+header_length])
+  off = setup_script_offset
+  setup_script_word_count = unpack_from('>I', d, off)[0]
+  off += 4
+  print('  0x{:06x} Setup Script: setup_script_word_count={:d}'.format(setup_script_offset, setup_script_word_count))
 
-  smaz_off = smedia_off + header_length
+  open('setup_script-{}.bin'.format(smedia_idx), 'wb').write(
+      d[setup_script_offset:setup_script_offset + setup_script_word_count * 4])
+
+  smaz_off = smedia_off + smaz_offset
   assert(d[smaz_off:smaz_off+4] == b'SMAZ')
   off = smaz_off + 4
   unpacked_chunk_length = unpack_from('>I', d, off)[0]
