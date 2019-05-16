@@ -50,3 +50,13 @@ class Instruction:
           ((src & 0x1F) << 16) | ((base & 0x1F) << 11) | (offset & 0x7FF)
     else:
       assert(False)
+
+class JInstruction:
+  opcode = None
+
+  def __init__(self, opcode, address):
+    self.opcode = opcode
+    self.address = address
+
+  def encode(self, pc):
+    return ((self.opcode & 0x3F) << 26) | (int((self.address - pc) / 4) & 0x03FFFFFF)
