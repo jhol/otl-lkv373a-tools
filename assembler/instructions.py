@@ -31,6 +31,15 @@ class EXT38:
   MOV2=0xb
   MOVH=0xc
 
+class CMP_COND:
+  EQ=0x0
+  NE=0x1
+  GT=0x2
+  GE=0x3
+  LT=0x4
+  LE=0x5
+  Z=0x6
+
 class Instruction:
   word = None
 
