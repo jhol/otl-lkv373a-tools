@@ -27,7 +27,7 @@ while 1:
   off += 4
   data_length = unpack_from('>I', d, off)[0]
   off += 4
-  print('0x{:06x} SMEDIA02: setup_scipt_offset=0x{:x}, smaz_offset={:d}, data_length={:d}'.format(
+  print('0x{:06x} SMEDIA02: setup_script_offset=0x{:x}, smaz_offset={:d}, data_length={:d}'.format(
       smedia_off, setup_script_offset, smaz_offset, data_length))
 
   off = setup_script_offset
