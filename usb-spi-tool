@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+import argparse
+from pyftdi import ftdi, spi
+import struct
+import sys
+from time import sleep
+
+
+def log(s):
+  if args.verbose:
+    sys.stderr.write(s + '\n')
+
+
+def die(s):
+  sys.stderr.write(s + '\n')
+  sys.exit(1)
+
+
+def exchange(write, num_read):
+  spi._ftdi.write_data(
+    # Assert chip-select
+    b'\x80\x00\xfb'
+
+    # Write bytes - sample on falling
+    b'\x11' + struct.pack('<H', len(write) - 1) + write +
+
+    # Read bytes - sample on rising
+    (b'' if num_read == 0 else (b'\x20' + struct.pack('<H', num_read - 1))) +
+
+    # Deassert chip-select
+    b'\x80\x08\xfb' +
+
+    # Flush
+    b'\x87'
+  )
+
+  return None if num_read == 0 else spi._ftdi.read_data(num_read)
+
+
+#
+# Parse arguments
+#
+
+parser = argparse.ArgumentParser(
+    description='Developer tool for communication with ITE processors over SPI')
+parser.add_argument('--device', '-d', default='ftdi://ftdi:2232h/1', help='PyFTDI device URL')
+parser.add_argument('--verbose', '-v', action='store_true', help='Print status messages')
+
+args = parser.parse_args()
+
+
+#
+# Connect to device
+#
+
+spi = spi.SpiController()
+spi.configure(args.device)
+
+
+# Read device ID
+
+log('Probing device...')
+spi._ftdi.write_data(b'\x80\x00\xFB')
+
+sleep(0.030)
+
+device_id = struct.unpack('<H', exchange(b'\x01\x01\x00', 2))[0]
+if device_id == 0 or id == 0xFFFF:
+  die('Failed to read device ID')
+
+rev = struct.unpack('<H', exchange(b'\x01\x02\x00', 2))[0]
+
+print(
+  'Device ID: {:04x}\n'
+  'Revision ID: {:04x}'.format(device_id, rev))
