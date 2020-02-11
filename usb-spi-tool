@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from pyftdi import ftdi, spi
+from pyftdi import ftdi
 import struct
 import sys
 from time import sleep
@@ -18,7 +18,7 @@ def die(s):
 
 
 def exchange(write, num_read):
-  spi._ftdi.write_data(
+  dev.write_data(
     # Assert chip-select
     b'\x80\x00\xfb'
 
@@ -35,7 +35,7 @@ def exchange(write, num_read):
     b'\x87'
   )
 
-  return None if num_read == 0 else spi._ftdi.read_data(num_read)
+  return None if num_read == 0 else dev.read_data(num_read)
 
 
 #
@@ -54,14 +54,13 @@ args = parser.parse_args()
 # Connect to device
 #
 
-spi = spi.SpiController()
-spi.configure(args.device)
-
+dev = ftdi.Ftdi()
+dev.open_mpsse_from_url(args.device, 0, 0, 2.0e6)
 
 # Read device ID
 
 log('Probing device...')
-spi._ftdi.write_data(b'\x80\x00\xFB')
+dev.write_data(b'\x80\x00\xFB')
 
 sleep(0.030)
 
