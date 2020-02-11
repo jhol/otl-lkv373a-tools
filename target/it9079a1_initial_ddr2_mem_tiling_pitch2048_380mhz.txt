@@ -1,0 +1,295 @@
+// ==============================================
+//            Engine & Clcok Setting
+// ==============================================
+// General reset register  and  General clock register
+pci_write(0x0202, 0xffff);
+pci_write(0x0012, 0x0008);
+pci_write(0x0014, 0xC001); // MCLK PLL1_OUT1 / 2 (Memory 189MHz)
+pci_write(0x0016, 0x102a);
+pci_write(0x0018, 0xc001); // NCLK PLL1_OUT1 / 2 (AHB/RISC 189MHz)
+pci_write(0x001a, 0x1008);
+pci_write(0x001c, 0xc003); // WCLK PLL1_OUT1 / 4 (APB 63MHz)
+pci_write(0x001e, 0x3aaa);
+pci_write(0x0020, 0x0aaa); // APB Clock
+pci_write(0x0022, 0x3fc0); // APB Reset
+pci_write(0x0026, 0x302a);
+pci_write(0x0028, 0xC000); // DCLK PPL3_OUT1 (PPL3 Clock) LCD
+pci_write(0x002a, 0x30aa);
+pci_write(0x002c, 0x0000); // ECLK PPL3_OUT1 (PPL3 Clock) TVE
+pci_write(0x002e, 0x300a);
+pci_write(0x0030, 0x8001); // ICLK PLL1_OUT1 / 2 (ISP 189MHz)
+pci_write(0x0032, 0x702b);
+pci_write(0x0034, 0x8001); // XCLK PLL1_OUT1 / 2 (Video 189MHz)
+pci_write(0x0036, 0xfaaa);
+pci_write(0x0038, 0x9001); // JCLK PLL1_OUT2 / 2 (JPEG 126MHz)
+pci_write(0x003A, 0xA000); // AMCLK PLL2_OUT1     (Audio, run-time adjust sampling rate)
+pci_write(0x003C, 0x8000); // ZCLK  PLL2_OUT1 / 1 (Audio, run-time adjust sampling rate)
+pci_write(0x003e, 0x70aa);
+pci_write(0x0040, 0x0000); // PCLK
+pci_write(0x0042, 0x1002);
+pci_write(0x0044, 0xf7ff);
+pci_write(0x0046, 0x100a);
+pci_write(0x0048, 0x700a);
+pci_write(0x004a, 0x1002);
+pci_write(0x004c, 0xC000); // FCLK PLL1_OUT1 (ARM 378MHz)
+pci_write(0x004e, 0x803f);
+pci_write(0x0050, 0x0000); // YCLK PPL3_OUT1 (PPL3 Clock) TVE
+pci_write(0x0052, 0xC000); // LCLK PPL3_OUT1 (PPL3 Clock) LCD
+pci_write(0x0054, 0x8001); // DHCLK PLL1_OUT1 / 2 (189MHz)
+pci_write(0x0056, 0x80ff);
+pci_write(0x0058, 0x9000); // TCLK PLL1_OUT2 (OpenVG Tesselation 252MHz)
+pci_write(0x005a, 0x9000); // VCLK PLL1_OUT2 (OpenVG Render 252MHz)
+pci_write(0x0060, 0xf801); // REFCLK
+pci_write(0x0062, 0x9009); // TSP and CAPCLK(M17CLK) Clock Setting
+pci_write(0x0064, 0x8000); // CAPCLK
+
+// Disable CLK Reset
+pci_write(0x0012, 0x0008);
+pci_write(0x0016, 0x002a); // Enable M1CLK/N2CLK/N10CLK Setting
+pci_write(0x001a, 0x0008); // Enable N1CLK Setting
+pci_write(0x001e, 0x0aaa); // Enable W0CLK/W1CLK/W2CLK/W3CLk/W4CLK/W5CLK Setting
+pci_write(0x0020, 0x0a2a); // Enable W6CLK/W7CLK/W8CLK/W9CLk/W11CLK Setting, Disable W10CLK (KBC)
+pci_write(0x0022, 0x0000); // USB Clock Setting
+pci_write(0x0026, 0x0000); // Disable CQ
+pci_write(0x002a, 0x0000); // Disable DHCLK/LCLK/DCLK Clock Setting
+pci_write(0x002e, 0x0000); // Disable YCLK/ECLK Clock Setting
+pci_write(0x0032, 0x0000); // Disable N5CLK/M5CLK/ICLK Clock Setting
+pci_write(0x0036, 0x0000); // Disable JPEG Clock Setting
+pci_write(0x003e, 0x0000); // Disable Audio DAC Clock Setting
+pci_write(0x0042, 0x0000); // Disable PCR Clock Setting
+pci_write(0x0044, 0x0000); // Disable RISC Clock Setting
+pci_write(0x0046, 0x0000); // Disable USB Clock Setting
+pci_write(0x0048, 0x000a); // Enable TSI Clock Setting
+pci_write(0x004a, 0x0000); // Disable UIENC Clock Setting
+pci_write(0x004e, 0x003f); // Enable ARM Clcok Setting
+pci_write(0x0056, 0x0000); // Disable OpenVG Clock Setting
+pci_write(0x0060, 0x3801); // Eanble REFCLK
+pci_write(0x0062, 0x0000); // Disable TSP and CAPCLK(M17CLK)
+pci_write(0x0064, 0x8000); // Disable CAP CAPCLK
+
+// Powerdown DAC
+pci_write(0x1a02, 0xffff); // Powerdown TVDAC
+
+// Set Host clock to PLL2 temporary, and set it to PLL1_OUT2 latter
+pci_write(0x0010, 0x5000); // BCLK PLL2_OUT1 (Host 33MHz)
+
+// ==============================================
+// PLL1 756Hz ck1_n1=378MHz , ck1_n2=252MHz
+// ==============================================
+pci_write(0x00a0, 0x401e);
+pci_write(0x00a2, 0x0302);
+pci_write(0x00a4, 0x22f4);
+pci_write(0x00a4, 0x32f4);
+pci_write(0x00a4, 0x22f4);
+
+// Set the host clock to PLL1_OUT2
+pci_write(0x0010, 0x4802); // BCLK PLL1_OUT2 / 3 (Host 84MHz)
+
+// ==============================================
+// PLL2 ck2_n1=166MHz , ck2_n2=166MHz
+// ==============================================
+// pci_write(0x00b0, 0x401e);
+// pci_write(0x00b2, 0x0404);
+// pci_write(0x00b4, 0x2298);
+// pci_write(0x00b4, 0x3298);
+// pci_write(0x00b4, 0x2298);
+
+// pci_write(0x00b4, 0x8000); // Power down PLL
+
+// ==============================================
+// PLL3 ck3_n1=148.5MHz , ck3_n2=74.25MHz
+// ==============================================
+// pci_write(0x00c0, 0x401e);
+// pci_write(0x00c2, 0x0c06);
+// pci_write(0x00c4, 0x237b);
+// pci_write(0x00c4, 0x337b);
+// pci_write(0x00c4, 0x237b);
+
+// pci_write(0x00c4, 0x8000); // Power down PLL
+
+// Host bus controller registers
+pci_write(0x0200, 0x0000);
+pci_write(0x0210, 0x0002); // Host_IO_Drv="01"
+pci_write(0x0214, 0x0c00);
+
+// ==============================================
+//              AHB Setting
+// ==============================================
+pci_write( 0x03da, 0x7508); // AHB Wrapper Setting
+pci_write( 0x5484, 0x0008); // Set AHB IDLE count to 8
+
+// ==============================================
+//              Memory Setting
+// ==============================================
+// Memory IO strength Setting
+
+// Memory controller registers
+// select MA13 MA12 as bank address
+// tiling, bank interleave, 128MB 8banks 16BusWidth 10BitsCadd tilingWidth 128byte
+pci_write( 0x0300, 0xb2a8);
+pci_write( 0x0302, 0x0000);
+pci_write( 0x030a, 0x0025); // Enable auto precharge, 2 path
+pci_write( 0x0310, 0x1522); // B0DTRFC,B0DTRCD, B0DTRP
+pci_write( 0x0312, 0x6412); // B0DTWR, B0DTWTR,B0DTXP,B0DTRTW
+pci_write( 0x0314, 0x0027); // B0DTDQM,B0DTRRD,B0DTDQL --OM
+pci_write( 0x0316, 0x1000); // B0DTRTP,B0DTREFI
+pci_write( 0x0318, 0x2208); // B0DTENCKGAT,B0DTRAS
+pci_write( 0x031A, 0x2000); // B0DTBL8,B0DTWL--OM
+pci_write( 0x031c, 0x9121); // B0DTMRD,B0DTXSNR
+
+pci_write( 0x0340, 0x2A40); // PLL MX2CLK UPDATE --OM
+pci_write( 0x0340, 0x3A40); // PLL MX2CLK UPDATE --OM
+pci_write( 0x0340, 0x2A40); // PLL MX2CLK UPDATE --OM
+
+pci_write( 0x0342, 0x2885); // DLL SETTING
+pci_write( 0x0344, 0x4144); // DLLPHASE
+pci_write( 0x0348, 0x0302); // B0DTDQSI
+
+pci_write( 0x0334, 0x0606); // MCLKP Out Setting & MA &CMD
+pci_write( 0x0336, 0xc440); // ODT Enable & MDQS IO Driving
+pci_write( 0x0330, 0x0421); // IO Driving
+pci_write( 0x0332, 0x1821); // IO Driving
+
+//PIN MUX
+
+pci_write( 0x0350, 0x0003); //             rasn->casn
+pci_write( 0x0352, 0x0402); // casn->wen,  wen->rasn
+pci_write( 0x0354, 0x160a); // mba0->modt, mba1->ma5
+pci_write( 0x0356, 0x0010); //             modt->ma11
+pci_write( 0x0358, 0x1114); // ma0->ma12,  ma1->mba1
+pci_write( 0x035a, 0x0d0f); // ma2->ma8,   ma3->ma10
+pci_write( 0x035c, 0x0e08); // ma4->ma9,   ma5->ma3
+pci_write( 0x035e, 0x0005); //             ma7->ma0
+pci_write( 0x0360, 0x0c07); // ma8->ma7,   ma9->ma2
+pci_write( 0x0362, 0x1309); // ma10->mba0, ma11->ma4
+pci_write( 0x0364, 0x0600); // ma12->ma1
+
+pci_write( 0x0396, 0xbf00); // MAX GNT
+
+pci_write( 0x0338, 0x0000);
+pci_write( 0x033A, 0x1212);
+pci_write( 0x0338, 0x0080);
+
+pci_write( 0x0338, 0x0001);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x0081);
+
+pci_write( 0x0338, 0x0002);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x0082);
+
+pci_write( 0x0338, 0x0003);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x0083);
+
+pci_write( 0x0338, 0x0004);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x0084);
+
+pci_write( 0x0338, 0x0005);
+pci_write( 0x033A, 0x1212);
+pci_write( 0x0338, 0x0085);
+
+pci_write( 0x0338, 0x0006);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x0086);
+
+pci_write( 0x0338, 0x0007);
+pci_write( 0x033A, 0x1212);
+pci_write( 0x0338, 0x0087);
+
+pci_write( 0x0338, 0x0008);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x0088);
+
+pci_write( 0x0338, 0x0009);
+pci_write( 0x033A, 0x1818);
+pci_write( 0x0338, 0x0089);
+
+pci_write( 0x0338, 0x000A);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x008A);
+
+pci_write( 0x0338, 0x000B);
+pci_write( 0x033A, 0x1818);
+pci_write( 0x0338, 0x008B);
+
+pci_write( 0x0338, 0x000C);
+pci_write( 0x033A, 0x1c1c);
+pci_write( 0x0338, 0x008C);
+
+pci_write( 0x0338, 0x000D);
+pci_write( 0x033A, 0x1818);
+pci_write( 0x0338, 0x008D);
+
+pci_write( 0x0338, 0x000E);
+pci_write( 0x033A, 0x1818);
+pci_write( 0x0338, 0x008E);
+
+pci_write( 0x0338, 0x000F);
+pci_write( 0x033A, 0x1616);
+pci_write( 0x0338, 0x008F);
+
+pci_write( 0x0338, 0x8200); // Enable Absorber
+
+wait(1); // 500 ns
+
+// Extend mode register 2: 1X refresh rate
+pci_write( 0x0304, 0x8000);
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0x8800);
+pci_write( 0x0316, 0x12EE);
+wait(1); // 2*mclk
+
+// Extend mode register 3:
+pci_write( 0x0304, 0xc000);
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0x8800);
+wait(1); // 2*mclk
+
+// Extend mode register: DLL enable
+pci_write( 0x0304, 0x4000);
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0x8800);
+wait(1); // 2*mclk
+
+// mode register: burst length=4, CAS latency=6 , DLL reset
+pci_write( 0x0304, 0x0162);
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0x8800);
+wait(1); // 330ns
+
+// mode register: burst length=4, CAS latency=6, DLL reset Off
+pci_write( 0x0304, 0x0862);
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0xc800);
+wait(1); // 2*mclk
+
+// Extend mode register: OCD default
+pci_write( 0x0304, 0x43C4);
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0x8800);
+wait(1); // 2*mclk
+
+// Extend mode register: OCD exit
+pci_write( 0x0304, 0x4006); // ODT
+pci_write( 0x0308, 0x0800);
+wait(1); // 1*mclk
+pci_write( 0x0308, 0xC880); // turn off PD
+wait(1); // 420 ns
+
+// Memory Priority Setting for Arbitration
+pci_write( 0x0380, 0x1011); // Swap the priority for AHB > RISC > ARM > USB
+pci_write( 0x0386, 0x0a0b);
+
+pci_write( 0x03aa, 0x17ff); // BIST END ADDRESS
+
+// ==============================================
+//           End of Memory Setting
+// ==============================================

@@ -38,6 +38,11 @@ def exchange(write, num_read):
   return None if num_read == 0 else dev.read_data(num_read)
 
 
+def parse_target_file(path):
+  with open(path, 'r') as f:
+    return {t[0]:t[1] for t in [l.strip().split(' ', 1) for l in f] if len(t) == 2}
+
+
 #
 # Parse arguments
 #
@@ -47,8 +52,21 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--device', '-d', default='ftdi://ftdi:2232h/1', help='PyFTDI device URL')
 parser.add_argument('--verbose', '-v', action='store_true', help='Print status messages')
 
+parser.add_argument('--quiet', '-q', action='store_true', help='Be quiet (no status messages)')
+parser.add_argument('--target', '-t', type=str, help='Target device definition', required=True)
+
 args = parser.parse_args()
 
+
+#
+# Parse the target file
+#
+
+target = parse_target_file(args.target)
+if not args.quiet:
+  print(
+    f'target info <{target["info"]}>\n'
+    f'target mcu <{target["mcu"]}> family <{target["family"]}>')
 
 #
 # Connect to device
@@ -70,6 +88,4 @@ if device_id == 0 or id == 0xFFFF:
 
 rev = struct.unpack('<H', exchange(b'\x01\x02\x00', 2))[0]
 
-print(
-  'Device ID: {:04x}\n'
-  'Revision ID: {:04x}'.format(device_id, rev))
+print(f'GLAMO device id <0x{device_id:04x}> revision id <0x{rev:04x}>')

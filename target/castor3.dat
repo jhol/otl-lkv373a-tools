@@ -1,0 +1,13 @@
+info castor3
+
+mcu castor3
+family 9070
+ram_size 0x4000000
+big-endian 0
+init_script it9850a0_400mhz.txt
+outbuf_addr 0xC0
+outbuf_size_addr 0xC4
+outbuf_index_addr 0xC8
+inbuf_addr 0xFF4
+inbuf_size_addr 0xFF8
+inbuf_index_addr 0xFFC
