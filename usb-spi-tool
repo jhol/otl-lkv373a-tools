@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 import argparse
+import os.path
 from pyftdi import ftdi
+import pyparsing as pp
 import struct
 import sys
 from time import sleep
 
 
 def log(s):
-  if args.verbose:
+  if not args.quiet:
     sys.stderr.write(s + '\n')
 
 
@@ -43,6 +45,149 @@ def parse_target_file(path):
     return {t[0]:t[1] for t in [l.strip().split(' ', 1) for l in f] if len(t) == 2}
 
 
+def write(addr, data):
+  log(f'WRITE(0x{addr:04x}, 0x{data:04x});')
+  exchange(bytes([
+      0x00, (addr & 0x0100) >> 1 | (addr & 0xFE) >> 1, (addr & 0xFE00) >> 9,
+      data & 0x00FF, (data & 0xFF00) >> 8]), 0)
+
+
+def read_mask(addr, mask):
+  log(f'READ_MASK(0x{addr:04x}, 0x{mask:04x});')
+  return struct.unpack('<H', exchange(bytes([
+      0x01, (addr & 0x0100) >> 1 | (addr & 0xFE) >> 1, (addr & 0xFE00) >> 9]), 2))[0] & mask
+
+
+def pci_write(addr, value):
+  write(addr, value)
+
+
+def wait(delay):
+  log(f'WAIT({delay:d});')
+  sleep(delay * 0.0001)
+
+
+class Literal:
+  def __init__(self, value):
+    self.value = value
+
+  def __repr__(self):
+    return repr(self.value)
+
+  def __call__(self):
+    return self.value
+
+
+class ScopeBlock:
+  def __init__(self, statements):
+    self.statements = statements
+
+  def __repr__(self):
+    return ''.join(['{\n'] + ['{}\n'.format(repr(s)) for s in self.statements] + ['}'])
+
+  def __call__(self):
+    for statement in self.statements:
+      statement()
+
+
+class BinaryExpr:
+  def __init__(self, arg1, op, arg2):
+    self.arg1 = arg1
+    self.op = op
+    self.arg2 = arg2
+
+  def __repr__(self):
+    return '{} {} {}'.format(self.arg1, self.op, self.arg2)
+
+  def __call__(self):
+    if self.op == '==':
+      return self.arg1() == self.arg2()
+    elif self.op == '!=':
+      return self.arg1() != self.arg2()
+    elif self.op == '<':
+      return self.arg1() < self.arg2()
+    elif self.op == '>':
+      return self.arg1() > self.arg2()
+    elif self.op == '<=':
+      return self.arg1() <= self.arg2()
+    elif self.op == '>=':
+      return self.arg1() >= self.arg2()
+    else:
+      assert(False)
+
+
+class Call:
+  def __init__(self, func, *args):
+    self.func = func
+    self.args = args
+
+  def __repr__(self):
+    return '{}({})'.format(self.func, ', '.join(str(a) for a in self.args))
+
+  def __call__(self):
+    args = [a() for a in self.args]
+    return globals()[self.func](*args)
+
+
+class If:
+  def __init__(self, condition, true_block, false_block=None):
+    self.condition = condition
+    self.true_block = true_block
+    self.false_block = false_block
+
+  def __repr__(self):
+    return 'if ({}) {}{}'.format(self.condition, self.true_block,
+        ' else {}'.format(self.false_block) if self.false_block else '')
+
+  def __call__(self):
+    if self.condition():
+      self.true_block()
+    elif self.false_block:
+      self.false_block()
+
+
+def run_script(path):
+  with open(path, 'r') as f:
+    script = f.read()
+
+  dec_literal = pp.Word(pp.nums).setParseAction(lambda toks: int(toks[0]))
+  hex_literal = pp.Combine('0x' + pp.Word(pp.hexnums)).setParseAction(lambda toks: int(toks[0], 16))
+  literal = (dec_literal ^ hex_literal).setParseAction(lambda toks: Literal(*toks))
+
+  rvalue = pp.Forward()
+  call = pp.Group(
+      pp.Word(pp.alphas + '_') +
+      pp.Suppress('(') +
+      pp.delimitedList(rvalue) +
+      pp.Suppress(')')
+      ).setParseAction(lambda toks: Call(*(toks[0])))
+  rvalue <<= (call ^ literal)
+
+  binary_op = pp.Or('==', '!=') ^ '<' ^ '>' ^ '<=' ^ '>='
+  binary_expr = (rvalue + binary_op + rvalue).setParseAction(lambda toks: BinaryExpr(*toks))
+
+  statement = pp.Forward()
+  scoped_block = (pp.Group(pp.Suppress('{') + pp.ZeroOrMore(statement) + pp.Suppress('}')) ^ statement).setParseAction(
+      lambda toks: ScopeBlock(toks[0]))
+
+  expression = pp.Forward()
+  expression <<= binary_expr ^ call ^ rvalue
+
+  if_statement = pp.Forward()
+  if_statement <<= (
+      pp.Suppress('if') + pp.Suppress('(') + expression + pp.Suppress(')') +
+      scoped_block +
+      pp.Optional(pp.Suppress('else') + (if_statement ^ scoped_block))).setParseAction(lambda toks: If(*toks))
+  statement <<= (call + pp.Suppress(';')) ^ if_statement
+
+  parser = pp.ZeroOrMore(statement)
+  parser.ignore('//' + pp.SkipTo(pp.LineEnd()))
+  parser.ignore('#' + pp.SkipTo(pp.LineEnd()))
+
+  script = ScopeBlock(parser.parseString(script))
+  script()
+
+
 #
 # Parse arguments
 #
@@ -50,12 +195,15 @@ def parse_target_file(path):
 parser = argparse.ArgumentParser(
     description='Developer tool for communication with ITE processors over SPI')
 parser.add_argument('--device', '-d', default='ftdi://ftdi:2232h/1', help='PyFTDI device URL')
-parser.add_argument('--verbose', '-v', action='store_true', help='Print status messages')
 
 parser.add_argument('--quiet', '-q', action='store_true', help='Be quiet (no status messages)')
 parser.add_argument('--target', '-t', type=str, help='Target device definition', required=True)
+parser.add_argument('--init', '-i', action='store_true', help='Run initial script')
+parser.add_argument('--exec', '-e', action='append', help='Execute script file')
 
 args = parser.parse_args()
+
+quiet = args.quiet
 
 
 #
@@ -63,7 +211,7 @@ args = parser.parse_args()
 #
 
 target = parse_target_file(args.target)
-if not args.quiet:
+if not quiet:
   print(
     f'target info <{target["info"]}>\n'
     f'target mcu <{target["mcu"]}> family <{target["family"]}>')
@@ -89,3 +237,22 @@ if device_id == 0 or id == 0xFFFF:
 rev = struct.unpack('<H', exchange(b'\x01\x02\x00', 2))[0]
 
 print(f'GLAMO device id <0x{device_id:04x}> revision id <0x{rev:04x}>')
+
+
+#
+# Initialise device
+#
+
+if args.init:
+  init_script_path = target['init_script']
+  init_script_path = (init_script_path if os.path.isabs(init_script_path) else
+      os.path.join(os.path.dirname(args.target), init_script_path))
+  run_script(init_script_path)
+
+
+#
+# Execute script files
+#
+
+for script in args.exec:
+  run_script(script)
