@@ -3,6 +3,7 @@
 import argparse
 import os.path
 from pyftdi import ftdi
+import progressbar
 import pyparsing as pp
 import struct
 import sys
@@ -19,7 +20,7 @@ def die(s):
   sys.exit(1)
 
 
-def exchange(write, num_read):
+def exchange(write, num_read=0):
   dev.write_data(
     # Assert chip-select
     b'\x80\x00\xfb'
@@ -199,7 +200,8 @@ parser.add_argument('--device', '-d', default='ftdi://ftdi:2232h/1', help='PyFTD
 parser.add_argument('--quiet', '-q', action='store_true', help='Be quiet (no status messages)')
 parser.add_argument('--target', '-t', type=str, help='Target device definition', required=True)
 parser.add_argument('--init', '-i', action='store_true', help='Run initial script')
-parser.add_argument('--exec', '-e', action='append', help='Execute script file')
+parser.add_argument('--save', '-S', type=str, help='Read RAM contents into file')
+parser.add_argument('--exec', '-e', action='append', default=[], help='Execute script file')
 
 args = parser.parse_args()
 
@@ -215,6 +217,7 @@ if not quiet:
   print(
     f'target info <{target["info"]}>\n'
     f'target mcu <{target["mcu"]}> family <{target["family"]}>')
+ram_size = int(target.get('ram_size', '0x0'), 16)
 
 #
 # Connect to device
@@ -225,7 +228,6 @@ dev.open_mpsse_from_url(args.device, 0, 0, 2.0e6)
 
 # Read device ID
 
-log('Probing device...')
 dev.write_data(b'\x80\x00\xFB')
 
 sleep(0.030)
@@ -256,3 +258,21 @@ if args.init:
 
 for script in args.exec:
   run_script(script)
+
+#
+# Read remory
+#
+
+if args.save:
+  read_block_size = 65536
+
+  with open(args.save, 'wb') as f:
+    with progressbar.ProgressBar(max_value=ram_size) as pb:
+      for offset in range(0, ram_size, read_block_size):
+        pb.update(offset)
+        read_size = min(ram_size - offset, read_block_size)
+        exchange(b'\x00\x04\x01' + struct.pack('<H', offset & 0xFFFF))
+        exchange(b'\x00\x05\x01' + struct.pack('<H', (offset >> 16) & 0xFFFF))
+        exchange(b'\x00\x06\x01' + struct.pack('<H', read_size // 2 - 1))
+        exchange(b'\x00\x07\x01\x07\x80')
+        f.write(exchange(b'\x01\x00\x80', read_size))
