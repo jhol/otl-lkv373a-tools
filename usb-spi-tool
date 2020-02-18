@@ -47,16 +47,31 @@ def parse_target_file(path):
 
 
 def write(addr, data):
-  log(f'WRITE(0x{addr:04x}, 0x{data:04x});')
   exchange(bytes([
       0x00, (addr & 0x0100) >> 1 | (addr & 0xFE) >> 1, (addr & 0xFE00) >> 9,
       data & 0x00FF, (data & 0xFF00) >> 8]), 0)
 
 
-def read_mask(addr, mask):
-  log(f'READ_MASK(0x{addr:04x}, 0x{mask:04x});')
+def read(addr):
   return struct.unpack('<H', exchange(bytes([
-      0x01, (addr & 0x0100) >> 1 | (addr & 0xFE) >> 1, (addr & 0xFE00) >> 9]), 2))[0] & mask
+      0x01, (addr & 0x0100) >> 1 | (addr & 0xFE) >> 1, (addr & 0xFE00) >> 9]), 2))[0]
+
+
+def read_mask(addr, mask):
+  return read(addr) & mask
+
+
+def write_memory(addr, data):
+  exchange(b'\x00\x03\x01' + struct.pack('<H', addr >> 16) +
+      struct.pack('<H', addr & 0xffff) + b'\x80' + data)
+
+
+def read_memory(addr, length):
+  exchange(b'\x00\x04\x01' + struct.pack('<H', addr & 0xFFFF))
+  exchange(b'\x00\x05\x01' + struct.pack('<H', (addr >> 16) & 0xFFFF))
+  exchange(b'\x00\x06\x01' + struct.pack('<H', length // 2 - 1))
+  exchange(b'\x00\x07\x01\x07\x80')
+  return exchange(b'\x01\x00\x80', length)
 
 
 def pci_write(addr, value):
@@ -127,6 +142,7 @@ class Call:
 
   def __call__(self):
     args = [a() for a in self.args]
+    log('{}({});'.format(self.func.upper(), ', '.join('0x{:04x}'.join(a) for a in args)))
     return globals()[self.func](*args)
 
 
@@ -200,12 +216,19 @@ parser.add_argument('--device', '-d', default='ftdi://ftdi:2232h/1', help='PyFTD
 parser.add_argument('--quiet', '-q', action='store_true', help='Be quiet (no status messages)')
 parser.add_argument('--target', '-t', type=str, help='Target device definition', required=True)
 parser.add_argument('--init', '-i', action='store_true', help='Run initial script')
+parser.add_argument('--load', '-l', type=str, help='Load image file into RAM')
 parser.add_argument('--save', '-S', type=str, help='Read RAM contents into file')
+parser.add_argument('--print-reg', '-r', action='store_true', help='Print register value')
+parser.add_argument('--write-reg', '-R', type=str, help='Write register value')
+parser.add_argument('--print-ram', '-m', action='store_true', help='Print RAM value')
+parser.add_argument('--write-ram', '-M', type=str, help='Write RAM value')
+parser.add_argument('--addr', '-a', default='0', help='Address')
 parser.add_argument('--exec', '-e', action='append', default=[], help='Execute script file')
 
 args = parser.parse_args()
 
 quiet = args.quiet
+addr = int(args.addr, 16) if args.addr else None
 
 
 #
@@ -260,19 +283,53 @@ for script in args.exec:
   run_script(script)
 
 #
-# Read remory
+# Load memory
 #
 
-if args.save:
-  read_block_size = 65536
+if args.load:
+  write_block_size = 32768
+
+  with open(args.load, 'rb') as f:
+    data = f.read()
+
+  with progressbar.ProgressBar(max_value=len(data)) as pb:
+    for offset in range(0, len(data), write_block_size):
+      pb.update(offset)
+      write_size = min(ram_size - offset, write_block_size)
+      write_memory(addr + offset, data[offset:offset+write_size])
+
+#
+# Read memory
+#
+
+elif args.save:
+  read_block_size = 32768
 
   with open(args.save, 'wb') as f:
     with progressbar.ProgressBar(max_value=ram_size) as pb:
       for offset in range(0, ram_size, read_block_size):
         pb.update(offset)
         read_size = min(ram_size - offset, read_block_size)
-        exchange(b'\x00\x04\x01' + struct.pack('<H', offset & 0xFFFF))
-        exchange(b'\x00\x05\x01' + struct.pack('<H', (offset >> 16) & 0xFFFF))
-        exchange(b'\x00\x06\x01' + struct.pack('<H', read_size // 2 - 1))
-        exchange(b'\x00\x07\x01\x07\x80')
-        f.write(exchange(b'\x01\x00\x80', read_size))
+        f.write(read_memory(offset, read_size))
+
+#
+# Read/write register
+#
+
+elif args.write_reg:
+  value = int(args.write_reg, 16)
+  write(addr, value)
+  log('reg <0x{:X}> value <0x{:X}> written'.format(addr, value))
+elif args.print_reg:
+  print('0x{:04X}: {:04X}'.format(addr, read_reg(addr)))
+
+#
+# Read/write memory
+#
+
+elif args.write_ram:
+  value = int(args.write_ram, 16)
+  write_memory(addr, struct.pack('<H', value))
+  log('ram <0x{:X}> value <0x{:X}> written'.format(addr, value))
+elif args.print_ram:
+  print('0x{:08X}: {:04X}'.format(addr, struct.unpack('<H', read_memory(addr, 2))[0]))
