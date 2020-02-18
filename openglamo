@@ -310,7 +310,7 @@ elif args.save:
       for offset in range(0, ram_size, read_block_size):
         pb.update(offset)
         read_size = min(ram_size - offset, read_block_size)
-        f.write(read_memory(offset, read_size))
+        f.write(read_memory(addr + offset, read_size))
 
 #
 # Read/write register
